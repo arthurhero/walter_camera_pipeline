@@ -7,6 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
+#include <iostream>
 
 #include <dc1394/dc1394_conversions.h>
 #include <dc1394/dc1394_control.h>

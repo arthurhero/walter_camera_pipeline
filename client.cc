@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
+#include <iostream>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
