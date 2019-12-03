@@ -63,15 +63,21 @@ static int get_int(int fd){
 
 //creceive camera stream: 3D array - h x w x 3 x nbytes
 // if fail to get input, set offline to true
-static unsigned char *get_one_picture(int fd, int height, int width, int nbytes) {
+static unsigned char *get_one_picture(int fd, int height, int width) {
     ssize_t rc;
-    unsigned char *image_arr = (unsigned char *)malloc(height * width * 3 * nbytes);
-    rc=read(fd, image_arr, height * width * 3 * nbytes);
-    if (rc==-1) {
-        close(fd);
-        exit(2);
+    unsigned char *image_arr = (unsigned char *)malloc(height * width * 3);
+    unsigned char *initial=image_arr;
+    for (int h=0;h<height;h++) {
+        for (int w=0;w<256;w++) {
+            rc=read(fd, image_arr, (size_t)(12));
+            if (rc==-1) {
+                close(fd);
+                exit(2);
+            }
+            image_arr+=(12/sizeof(unsigned char));
+        }
     }
-    return image_arr;
+    return initial;
 }
 
 // send an int to client
