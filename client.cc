@@ -58,15 +58,24 @@ int main(int argc, char** argv) {
   cout << "joined camera connection!" << endl;
 
   int height = get_int(socket_fd);
+  if (height==-1){
+      perror("failed to get height");
+      exit(2);
+  }
   int width = get_int(socket_fd);
+  if (width==-1){
+      perror("failed to get width");
+      exit(2);
+  }
 
-  cv::namedWindow("display",cv::WINDOW_AUTOSIZE);
 
   cout << height << " " << width <<endl;
 
   int counter=0;
   int start = time(NULL);
+  // to store the received img
   unsigned char *arr = (unsigned char *)calloc(height * width * 3, sizeof(unsigned char));
+  cv::namedWindow("display",cv::WINDOW_AUTOSIZE);
   while (true) {
   //while (counter<100) {
       get_one_picture(socket_fd,arr,height,width);

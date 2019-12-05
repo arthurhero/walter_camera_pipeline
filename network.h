@@ -55,20 +55,13 @@ static int get_int(int fd){
     rc=read(fd, &result, sizeof(int));
     if (rc==-1) {
         return rc;
-        // Handle cases that the opponent is offline
-        //close(fd);
-        //exit(2); 
     }
     return result;
 }
 
-//creceive camera stream: 3D array - h x w x 3 x nbytes
-// if fail to get input, set offline to true
+//receive camera stream: 3D array - h x w x 3
 static void get_one_picture(int fd, unsigned char *image_arr, int height, int width) {
     ssize_t rc;
-    //unsigned char *image_arr = (unsigned char *)malloc(height * width * 3 *sizeof(unsigned char));
-    //unsigned char *image_arr = (unsigned char *)calloc(height * width * 3, sizeof(unsigned char));
-    //unsigned char *initial=image_arr;
     size_t total=height*width*3*sizeof(unsigned char);
     size_t cur_chunk=total;
     size_t count = 0;
@@ -81,8 +74,6 @@ static void get_one_picture(int fd, unsigned char *image_arr, int height, int wi
         cur_chunk-=(size_t)rc;
         image_arr+=(rc/sizeof(unsigned char));
     }
-    //printf("total: %d\n",(int)count);
-    //return initial;
 }
 
 // send an int to client
@@ -104,16 +95,10 @@ static int send_int(int client_fd, int i) {
 static int send_image(int client_fd, int height, int width, unsigned char *image) {
     ssize_t rc;
     // Send image arr to client
-    for (int h=0;h<1;h++) {
-        // send width 6 times
-        for (int w=0;w<1;w++) {
-            rc=write(client_fd,image,(size_t)(3*width*height));
-            if (rc==-1) {
-                close(client_fd);
-                return -1;
-            }
-            image+=((3*width*height)/sizeof(unsigned char));
-        }
+    rc=write(client_fd,image,(size_t)(3*width*height*sizeof(unsigned char)));
+    if (rc==-1) {
+        close(client_fd);
+        return -1;
     }
     return 0;
 }

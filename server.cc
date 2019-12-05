@@ -157,15 +157,15 @@ unsigned char* grab_one_frame(dc1394camera_t*  camera, PGRStereoCamera_t *stereo
 }
 
 
-void compress(int height, int width, unsigned char *orig, unsigned char *down) {
-    int dh=height/2;
-    int dw=width/2;
-    //downsample the image to 0.5 orig h and w
+void compress(int height, int width, int ratio,  unsigned char *orig, unsigned char *down) {
+    int dh=height/ratio;
+    int dw=width/ratio;
+    //downsample the image to 1/ratio orig h and w
     for (int h=0;h<dh;h++) {
         for (int w=0;w<dw;w++) {
-            down[3*h*dw+3*w]=orig[3*2*h*width+3*2*w];
-            down[3*h*dw+3*w+1]=orig[3*2*h*width+3*2*w+1];
-            down[3*h*dw+3*w+2]=orig[3*2*h*width+3*2*w+2];
+            down[3*h*dw+3*w]=orig[3*ratio*h*width+3*ratio*w];
+            down[3*h*dw+3*w+1]=orig[3*ratio*h*width+3*ratio*w+1];
+            down[3*h*dw+3*w+2]=orig[3*ratio*h*width+3*ratio*w+2];
         }
     }
     return;
@@ -200,8 +200,10 @@ int main(int argc, char** argv) {
 
     cout << height << " " << width << " " << nbytes << endl; 
 
-    int dh=height/2;
-    int dw=width/2;
+    //downsampled height and width
+    int ratio=2;
+    int dh=height/ratio;
+    int dw=width/ratio;
 
     ret = send_int(socket_fd, dh);
     if (ret != 0) {
@@ -220,43 +222,20 @@ int main(int argc, char** argv) {
     unsigned char* pucDeInterlacedBuffer = new unsigned char[ nBufferSize ];
     unsigned char* pucRGBBuffer   = new unsigned char[ 3 * nBufferSize ];
     unsigned char* pucGreenBuffer     = new unsigned char[ nBufferSize ];
-
+    // to store downsampled img
     unsigned char *down = (unsigned char *)malloc(dh*dw*3*sizeof(unsigned char *));
     while (true) {
-        //usleep(1000000); //micro secs
         unsigned char *img_arr = grab_one_frame(camera,&stereoCamera,
                 pucDeInterlacedBuffer,pucRGBBuffer,pucGreenBuffer);
-        compress(height,width,img_arr,down);
+        compress(height,width,ratio,img_arr,down);
         
-        /*
-        unsigned char test[768*1024*3]={0};
-        for (int i=50;i<250;i++) {
-            for (int j=50;j<250;j++) {
-                test[i*width*3+j*3]=255;
-                test[i*width*3+j*3+1]=255;
-                test[i*width*3+j*3+2]=255;
-            }
-        }
-        */
-        //ret = send_image(socket_fd,height,width,img_arr);
         ret = send_image(socket_fd,dh,dw,down);
         if (ret != 0) {
             fprintf( stderr, "Unable to send image\n" );
             dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
-            //cleanup_and_exit(camera,&stereoCamera);
             break;
         }
         dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
-        /*
-        int cf = get_int(socket_fd);
-        if (cf != 0) {
-            fprintf( stderr, "Did not get confirmation\n" );
-            //dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
-            //cleanup_and_exit(camera,&stereoCamera);
-            break;
-        }
-        */
-        //break;
     }
 
     // close camera
