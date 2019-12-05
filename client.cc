@@ -66,17 +66,20 @@ int main(int argc, char** argv) {
 
   int counter=0;
   int start = time(NULL);
+  unsigned char *arr = (unsigned char *)calloc(height * width * 3, sizeof(unsigned char));
   while (true) {
-  //while (counter<1000) {
-      unsigned char *arr=get_one_picture(socket_fd,height,width);
-      cout << "got" << endl;
+  //while (counter<100) {
+      get_one_picture(socket_fd,arr,height,width);
+      //cout << "got" << endl;
+      /*
+      */
       Mat mat = arr2Mat(height,width,arr);
       cv::imshow("display",mat);
       cv::waitKey(1);
       //save_img("test.jpg",mat);
       //break;
-      //counter++;
-      send_int(socket_fd,0);
+      counter++;
+      //send_int(socket_fd,0);
   }
   int end= time(NULL);
   cout << "total sec: " << end-start << " for " << counter << " pics " << endl;
