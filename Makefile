@@ -23,4 +23,4 @@ client: client.cc
 	$(CC) $(CFLAGS) -o $@ $^ ${PKG-CONFIG}
 
 server: server.cc /usr/local/BumbleBee2/examples-libdc-2/utils/stereohelper.cpp
-	$(CC) $(SERVER_FLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CC) $(CXXFLAGS) $(SERVER_FLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)

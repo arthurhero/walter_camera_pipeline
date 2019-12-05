@@ -54,9 +54,10 @@ static int get_int(int fd){
     // Read image row num 
     rc=read(fd, &result, sizeof(int));
     if (rc==-1) {
+        return rc;
         // Handle cases that the opponent is offline
-        close(fd);
-        exit(2); 
+        //close(fd);
+        //exit(2); 
     }
     return result;
 }
@@ -90,13 +91,19 @@ static int send_int(int client_fd, int i) {
 // send image to client
 // if cannot send, we think client quitted, return -1
 // On success, return 0 
-static int send_image(int client_fd, int height, int width, int nbytes, unsigned char *image) {
+static int send_image(int client_fd, int height, int width, unsigned char *image) {
     ssize_t rc;
     // Send image arr to client
-    rc=write(client_fd,image,height*width*3*nbytes);
-    if (rc==-1) {
-        close(client_fd);
-        return -1;
+    for (int h=0;h<1;h++) {
+        // send width 6 times
+        for (int w=0;w<1;w++) {
+            rc=write(client_fd,image,(size_t)(3*width*height));
+            if (rc==-1) {
+                close(client_fd);
+                return -1;
+            }
+            image+=((3*width*height)/sizeof(unsigned char));
+        }
     }
     return 0;
 }

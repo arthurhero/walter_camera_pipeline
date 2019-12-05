@@ -21,7 +21,18 @@ using std::string;
 using std::cout;
 using std::endl;
 
-void cleanup_and_exit( dc1394camera_t* camera ) {
+void cleanup_and_exit( dc1394camera_t* camera,PGRStereoCamera_t* stereoCamera ) {
+   if (stereoCamera != NULL) {
+       //dc1394_capture_stop(stereoCamera->camera);
+       //  Stop data transmission
+       if ( dc1394_video_set_transmission( stereoCamera->camera, DC1394_OFF ) != DC1394_SUCCESS )
+       {
+           fprintf( stderr, "Couldn't stop the camera?\n" );
+       }
+       cout << "stopped transmission" << endl;
+       //dc1394_free_camera(stereoCamera->camera);
+   }
+
    dc1394_capture_stop( camera );
    dc1394_video_set_transmission( camera, DC1394_OFF );
    dc1394_free_camera( camera );
@@ -30,106 +41,102 @@ void cleanup_and_exit( dc1394camera_t* camera ) {
 
 dc1394camera_t* initialize_camera() {
     dc1394camera_t*  camera; 
-	dc1394error_t err;    
+    dc1394error_t err;    
 
-	// Find cameras on the 1394 buses
-	uint_t       nCameras;
-	dc1394camera_t** cameras=NULL;
-	err = dc1394_find_cameras( &cameras, &nCameras );
+    // Find cameras on the 1394 buses
+    uint_t       nCameras;
+    dc1394camera_t** cameras=NULL;
+    err = dc1394_find_cameras( &cameras, &nCameras );
 
-	if ( err != DC1394_SUCCESS ) 
-	{
-		fprintf( stderr, "Unable to look for cameras\n\n"
-				"Please check \n"
-				"  - if the kernel modules `ieee1394',`raw1394' and `ohci1394' are loaded \n"
-				"  - if you have read/write access to /dev/raw1394\n\n");
-		return 1;
-	}
+    if ( err != DC1394_SUCCESS ) 
+    {
+        fprintf( stderr, "Unable to look for cameras\n\n"
+                "Please check \n"
+                "  - if the kernel modules `ieee1394',`raw1394' and `ohci1394' are loaded \n"
+                "  - if you have read/write access to /dev/raw1394\n\n");
+        exit(2);
+    }
 
-	//  get the camera nodes and describe them as we find them
-	if ( nCameras < 1 ) 
-	{
-		fprintf( stderr, "No cameras found!\n");
-		return 1;
-	}
+    //  get the camera nodes and describe them as we find them
+    if ( nCameras < 1 ) 
+    {
+        fprintf( stderr, "No cameras found!\n");
+        exit(2);
+    }
 
-	unsigned int     nThisCam;
-	printf( "There were %d camera(s) found attached to your PC\n", nCameras );
-	for ( nThisCam = 0; nThisCam < nCameras; nThisCam++ )
-	{
-		printf( "Camera %d model = '%s'\n", nThisCam, cameras[nThisCam]->model );
-		if ( isStereoCamera( cameras[nThisCam] ) )
-		{
-			printf( "Using this camera\n" );
-			break;  
-		}
-	}
+    unsigned int     nThisCam;
+    printf( "There were %d camera(s) found attached to your PC\n", nCameras );
+    for ( nThisCam = 0; nThisCam < nCameras; nThisCam++ )
+    {
+        printf( "Camera %d model = '%s'\n", nThisCam, cameras[nThisCam]->model );
+        if ( isStereoCamera( cameras[nThisCam] ) )
+        {
+            printf( "Using this camera\n" );
+            break;  
+        }
+    }
 
-	if ( nThisCam == nCameras )
-	{
-		printf( "No stereo cameras were detected\n" );
-		return 0;
-	}
+    if ( nThisCam == nCameras )
+    {
+        printf( "No stereo cameras were detected\n" );
+        exit(2);
+    }
 
-	camera = cameras[nThisCam];
+    camera = cameras[nThisCam];
 
-	// free the other cameras
-	for ( unsigned int i = 0; i < nCameras; i++ )
-	{
-		if ( i != nThisCam )
-			dc1394_free_camera( cameras[i] );
-	}
-	free(cameras);
+    // free the other cameras
+    for ( unsigned int i = 0; i < nCameras; i++ )
+    {
+        if ( i != nThisCam )
+            dc1394_free_camera( cameras[i] );
+    }
+    free(cameras);
     return camera;
 }
 
 
 void init_stereo_camera(PGRStereoCamera_t &stereoCamera, dc1394camera_t *camera) {
     dc1394error_t err;
-	// query information about this stereo camera
-	err = queryStereoCamera( camera, &stereoCamera );
+    // query information about this stereo camera
+    err = queryStereoCamera( camera, &stereoCamera );
 
-	if ( err != DC1394_SUCCESS )
-	{
-		fprintf( stderr, "Cannot query all information from camera\n" );
-		cleanup_and_exit( camera );
-	}
+    if ( err != DC1394_SUCCESS )
+    {
+        fprintf( stderr, "Cannot query all information from camera\n" );
+        cleanup_and_exit(camera,&stereoCamera);
+    }
 
-	// set the capture mode
-	printf( "Setting stereo video capture mode\n" );
-	err = setStereoVideoCapture( &stereoCamera );
-	if ( err != DC1394_SUCCESS )
-	{
-		fprintf( stderr, "Could not set up video capture mode\n" );
-		cleanup_and_exit( stereoCamera.camera );
-	}
+    // set the capture mode
+    printf( "Setting stereo video capture mode\n" );
+    err = setStereoVideoCapture( &stereoCamera );
+    if ( err != DC1394_SUCCESS )
+    {
+        fprintf( stderr, "Could not set up video capture mode\n" );
+        cleanup_and_exit(camera,&stereoCamera);
+    }
 
-	// have the camera start sending us data
-	printf( "Start transmission\n" );
-	err = startTransmission( &stereoCamera );
-	if ( err != DC1394_SUCCESS )
-	{
-		fprintf( stderr, "Unable to start camera iso transmission\n" );
-		cleanup_and_exit(stereoCamera.camera );
-	}
+    // have the camera start sending us data
+    printf( "Start transmission\n" );
+    err = startTransmission( &stereoCamera );
+    if ( err != DC1394_SUCCESS )
+    {
+        fprintf( stderr, "Unable to start camera iso transmission\n" );
+        cleanup_and_exit(camera,&stereoCamera);
+    }
     return;
 }
 
 
 // return center rgb arr, height x width x 3 x n_bytes
-unsigned char* grab_one_frame(PGRStereoCamera_t *stereoCamera) {
+unsigned char* grab_one_frame(dc1394camera_t*  camera, PGRStereoCamera_t *stereoCamera,
+        unsigned char* pucDeInterlacedBuffer, unsigned char* pucRGBBuffer,
+        unsigned char* pucGreenBuffer) {
     if ( dc1394_capture_dma( &stereoCamera->camera, 1, DC1394_VIDEO1394_WAIT )!= DC1394_SUCCESS)
     {
         fprintf( stderr, "Unable to capture a frame\n" );
-        cleanup_and_exit( stereoCamera->camera );
+        cleanup_and_exit(camera,stereoCamera);
     }
-    unsigned int   nBufferSize = stereoCamera->nRows *
-        stereoCamera->nCols *
-        stereoCamera->nBytesPerPixel;
     // allocate a buffer to hold the de-interleaved images
-    unsigned char* pucDeInterlacedBuffer = new unsigned char[ nBufferSize ];
-    unsigned char* pucRGBBuffer   = new unsigned char[ 3 * nBufferSize ];
-    unsigned char* pucGreenBuffer     = new unsigned char[ nBufferSize ];
     unsigned char* pucRightRGB    = NULL;
     unsigned char* pucLeftRGB     = NULL;
     unsigned char* pucCenterRGB   = NULL;
@@ -146,7 +153,22 @@ unsigned char* grab_one_frame(PGRStereoCamera_t *stereoCamera) {
             &pucLeftRGB,
             &pucCenterRGB,
             &input );
-    return pucCenterRGB;
+    return pucLeftRGB;
+}
+
+
+void compress(int height, int width, unsigned char *orig, unsigned char *down) {
+    int dh=height/2;
+    int dw=width/2;
+    //downsample the image to 0.5 orig h and w
+    for (int h=0;h<dh;h++) {
+        for (int w=0;w<dw;w++) {
+            down[3*h*dw+3*w]=orig[3*2*h*width+3*2*w];
+            down[3*h*dw+3*w+1]=orig[3*2*h*width+3*2*w+1];
+            down[3*h*dw+3*w+2]=orig[3*2*h*width+3*2*w+2];
+        }
+    }
+    return;
 }
 
 
@@ -168,46 +190,77 @@ int main(int argc, char** argv) {
 
     // Accept connection
     accept_connection(server_socket_fd, &socket_fd);
+    cout << "accepted connection" << endl; 
 
     // send img height
     int ret;
     int height = stereoCamera.nRows;
     int width = stereoCamera.nCols;
     int nbytes = stereoCamera.nBytesPerPixel;
-    ret = send_int(socket_fd, height);
+
+    cout << height << " " << width << " " << nbytes << endl; 
+
+    int dh=height/2;
+    int dw=width/2;
+
+    ret = send_int(socket_fd, dh);
     if (ret != 0) {
         fprintf( stderr, "Unable to send height\n" );
-        cleanup_and_exit( stereoCamera.camera );
+        cleanup_and_exit(camera,&stereoCamera);
     }
-    ret = send_int(socket_fd, width);
+    cout << "sent height" << endl;
+    ret = send_int(socket_fd, dw);
     if (ret != 0) {
         fprintf( stderr, "Unable to send width\n" );
-        cleanup_and_exit( stereoCamera.camera );
+        cleanup_and_exit(camera,&stereoCamera);
     }
-    ret = send_int(socket_fd, nbytes);
-    if (ret != 0) {
-        fprintf( stderr, "Unable to send nbytes\n" );
-        cleanup_and_exit( stereoCamera.camera );
-    }
+    cout << "sent width" << endl;
 
-    // Wait for the game to end
+    unsigned int   nBufferSize = height*width*nbytes;
+    unsigned char* pucDeInterlacedBuffer = new unsigned char[ nBufferSize ];
+    unsigned char* pucRGBBuffer   = new unsigned char[ 3 * nBufferSize ];
+    unsigned char* pucGreenBuffer     = new unsigned char[ nBufferSize ];
+
+    unsigned char *down = (unsigned char *)malloc(dh*dw*3*sizeof(unsigned char *));
     while (true) {
-        unsigned char *img_arr = grab_one_frame(&stereoCamera);
-        ret = send_image(socket_fd,height,width,nbytes,img_arr);
+        //usleep(1000000); //micro secs
+        unsigned char *img_arr = grab_one_frame(camera,&stereoCamera,
+                pucDeInterlacedBuffer,pucRGBBuffer,pucGreenBuffer);
+        compress(height,width,img_arr,down);
+        
+        /*
+        unsigned char test[768*1024*3]={0};
+        for (int i=50;i<250;i++) {
+            for (int j=50;j<250;j++) {
+                test[i*width*3+j*3]=255;
+                test[i*width*3+j*3+1]=255;
+                test[i*width*3+j*3+2]=255;
+            }
+        }
+        */
+        //ret = send_image(socket_fd,height,width,img_arr);
+        ret = send_image(socket_fd,dh,dw,down);
         if (ret != 0) {
             fprintf( stderr, "Unable to send image\n" );
-            cleanup_and_exit( stereoCamera.camera );
+            dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
+            //cleanup_and_exit(camera,&stereoCamera);
+            break;
         }
-        break;
+        dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
+        /*
+        int cf = get_int(socket_fd);
+        if (cf != 0) {
+            fprintf( stderr, "Did not get confirmation\n" );
+            //dc1394_capture_dma_done_with_buffer(stereoCamera.camera);
+            //cleanup_and_exit(camera,&stereoCamera);
+            break;
+        }
+        */
+        //break;
     }
 
-    //  Stop data transmission
-    if ( dc1394_video_set_transmission( stereoCamera.camera, DC1394_OFF ) != DC1394_SUCCESS )
-    {
-        fprintf( stderr, "Couldn't stop the camera?\n" );
-    }
     // close camera
-    cleanup_and_exit( camera );
+    cleanup_and_exit(camera,&stereoCamera);
 
     return 0;
 }

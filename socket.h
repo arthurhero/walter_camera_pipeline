@@ -33,10 +33,15 @@ static int socket_connect(char* server_name, unsigned short port) {
   }
   
   // Set up an address
+  /*
   struct sockaddr_in addr = {
     .sin_family = AF_INET,    // This is an internet socket
     .sin_port = htons(port)   // Connect to the appropriate port number
   };
+  */
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
   
   // Copy the server address info returned by gethostbyname into the address
   memcpy(&addr.sin_addr.s_addr, server->h_addr, server->h_length);
