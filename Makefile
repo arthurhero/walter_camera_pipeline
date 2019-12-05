@@ -17,7 +17,8 @@ LIBS    += -ltriclops -lpnmutils
 PKG-CONFIG := `pkg-config --cflags --libs opencv`
 
 clean:
-	rm ./client ./server *.o 
+	if [ -f client ];then rm client;fi
+	if [ -f server ];then rm server;fi
 
 client: client.cc
 	$(CC) $(CFLAGS) -o $@ $^ ${PKG-CONFIG}
