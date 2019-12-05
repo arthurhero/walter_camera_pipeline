@@ -23,6 +23,13 @@ using cv::Mat;
 
 Mat arr2Mat(int height, int width, unsigned char *arr) {
     Mat mat=Mat(height, width, CV_8UC3, arr);
+    Mat channel[3];
+    Mat channel_[3];
+    cv::split(mat,channel);
+    channel_[0]=channel[2];
+    channel_[1]=channel[1];
+    channel_[2]=channel[0];
+    cv::merge(channel_,3,mat);
     return mat;
 }
 
@@ -52,14 +59,30 @@ int main(int argc, char** argv) {
 
   int height = get_int(socket_fd);
   int width = get_int(socket_fd);
-  int nbytes = get_int(socket_fd);
 
+  cv::namedWindow("display",cv::WINDOW_AUTOSIZE);
+
+  cout << height << " " << width <<endl;
+
+  int counter=0;
+  int start = time(NULL);
+  unsigned char *arr = (unsigned char *)calloc(height * width * 3, sizeof(unsigned char));
   while (true) {
-      unsigned char *arr=get_one_picture(socket_fd,height,width,nbytes);
+  //while (counter<100) {
+      get_one_picture(socket_fd,arr,height,width);
+      //cout << "got" << endl;
+      /*
+      */
       Mat mat = arr2Mat(height,width,arr);
-      save_img("test.jpg",mat);
-      break;
+      cv::imshow("display",mat);
+      cv::waitKey(1);
+      //save_img("test.jpg",mat);
+      //break;
+      counter++;
+      //send_int(socket_fd,0);
   }
+  int end= time(NULL);
+  cout << "total sec: " << end-start << " for " << counter << " pics " << endl;
 
   return 0;
 }
