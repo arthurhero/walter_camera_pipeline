@@ -8,7 +8,7 @@ Clone this folder to Walter's PC. `cd` into this folder, run `make server`.
 
 Clone this folder to the target workstation (possibly a computer with GPU). `cd` into this folder, run `make client`.
 
-Run `./server` on Walter. You will the port number displayed on the screen.
+Run `./server` on Walter. You will see the port number displayed on the screen.
 
 Then run `./client walter <port number>` on the workstation.
 
