@@ -22,6 +22,8 @@ using std::endl;
 using cv::Mat;
 
 Mat arr2Mat(int height, int width, unsigned char *arr) {
+    // convert c++ array to a opencv mat
+    // and swap rgb to bgr
     Mat mat=Mat(height, width, CV_8UC3, arr);
     Mat channel[3];
     Mat channel_[3];
@@ -53,7 +55,7 @@ int main(int argc, char** argv) {
   char* server_hostname = argv[1];
   unsigned short server_port= atoi(argv[2]);
 
-  // Join the host's game
+  // Join the server's connection
   join_camera_connection(server_hostname, server_port, &socket_fd);
   cout << "joined camera connection!" << endl;
 
@@ -68,16 +70,17 @@ int main(int argc, char** argv) {
       exit(2);
   }
 
-
   cout << height << " " << width <<endl;
 
+  // a counter for profiling
   int counter=0;
   int start = time(NULL);
-  // to store the received img
+  // buffer to store the received img
   unsigned char *arr = (unsigned char *)calloc(height * width * 3, sizeof(unsigned char));
+  // window to display the video stream
   cv::namedWindow("display",cv::WINDOW_AUTOSIZE);
   while (true) {
-  //while (counter<100) {
+  //while (counter<100) { // uncomment this line when profiling
       get_one_picture(socket_fd,arr,height,width);
       //cout << "got" << endl;
       /*
@@ -85,13 +88,14 @@ int main(int argc, char** argv) {
       Mat mat = arr2Mat(height,width,arr);
       cv::imshow("display",mat);
       cv::waitKey(1);
-      //save_img("test.jpg",mat);
-      //break;
-      counter++;
-      //send_int(socket_fd,0);
+      /*
+      save_img("test.jpg",mat);
+      break;
+      */
+      //counter++; // uncomment this line when profiling
   }
   int end= time(NULL);
-  cout << "total sec: " << end-start << " for " << counter << " pics " << endl;
+  //cout << "total sec: " << end-start << " for " << counter << " pics " << endl; // uncomment this line when profiling
 
   return 0;
 }

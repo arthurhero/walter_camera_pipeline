@@ -23,14 +23,12 @@ using std::endl;
 
 void cleanup_and_exit( dc1394camera_t* camera,PGRStereoCamera_t* stereoCamera ) {
    if (stereoCamera != NULL) {
-       //dc1394_capture_stop(stereoCamera->camera);
        //  Stop data transmission
        if ( dc1394_video_set_transmission( stereoCamera->camera, DC1394_OFF ) != DC1394_SUCCESS )
        {
            fprintf( stderr, "Couldn't stop the camera?\n" );
        }
        cout << "stopped transmission" << endl;
-       //dc1394_free_camera(stereoCamera->camera);
    }
 
    dc1394_capture_stop( camera );
@@ -158,6 +156,8 @@ unsigned char* grab_one_frame(dc1394camera_t*  camera, PGRStereoCamera_t *stereo
 
 
 void compress(int height, int width, int ratio,  unsigned char *orig, unsigned char *down) {
+    // compress image orig to image down by ratio
+    // h and w are best to be divisible by ratio
     int dh=height/ratio;
     int dw=width/ratio;
     //downsample the image to 1/ratio orig h and w
@@ -172,7 +172,7 @@ void compress(int height, int width, int ratio,  unsigned char *orig, unsigned c
 }
 
 
-// Entry point: Set up the game, create jobs, then run the scheduler
+// Entry point: Set up the connection, send height and width, then send video stream
 int main(int argc, char** argv) {
 
     dc1394camera_t* camera = initialize_camera(); 
@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
     cout << height << " " << width << " " << nbytes << endl; 
 
     //downsampled height and width
-    int ratio=2;
+    int ratio=4; // when using wireless connection, better use 4, otherwise 2
     int dh=height/ratio;
     int dw=width/ratio;
 
@@ -218,7 +218,9 @@ int main(int argc, char** argv) {
     }
     cout << "sent width" << endl;
 
+    // buffer size
     unsigned int   nBufferSize = height*width*nbytes;
+    // buffers for img processing
     unsigned char* pucDeInterlacedBuffer = new unsigned char[ nBufferSize ];
     unsigned char* pucRGBBuffer   = new unsigned char[ 3 * nBufferSize ];
     unsigned char* pucGreenBuffer     = new unsigned char[ nBufferSize ];
